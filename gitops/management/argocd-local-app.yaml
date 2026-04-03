@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-microservice-local
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # Pointing to your newly pushed GitHub repository!
+    repoURL: 'https://github.com/biswajit22/GitOps-Engine.git'
+    targetRevision: HEAD
+    path: 'apps/sample-microservice'
+    helm:
+      valueFiles:
+      - 'values.yaml'
+  destination:
+    server: 'https://kubernetes.default.svc' # Deploys back onto the local kind cluster
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
