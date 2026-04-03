@@ -1,0 +1,10 @@
+apiVersion: v2
+name: sample-microservice
+description: A sample Helm chart demonstrating Argo Rollouts
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+dependencies:
+  - name: argo-rollouts
+    version: 2.*.*
+    repository: https://argoproj.github.io/argo-helm

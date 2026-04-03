@@ -1,0 +1,10 @@
+image:
+  repository: nginx
+  tag: "1.21.6" # This tag will be updated by GitHub Actions
+  pullPolicy: IfNotPresent
+
+replicaCount: 5
+
+service:
+  type: ClusterIP
+  port: 80

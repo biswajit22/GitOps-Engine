@@ -1,0 +1,73 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'infrastructure/**'
+      - 'apps/**'
+
+jobs:
+  infrastructure-checks:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infrastructure/terraform
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: "1.5.0"
+
+    - name: Terraform Format
+      run: terraform fmt -check
+
+    - name: Terraform Init
+      run: terraform init -backend=false
+
+    - name: Install tflint
+      uses: terraform-linters/setup-tflint@v3
+      with:
+        tflint_version: v0.48.0
+
+    - name: tflint
+      run: tflint -f compact
+
+    - name: Checkov Security Scan
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: infrastructure/terraform
+        framework: terraform
+        quiet: true
+
+  update-image-tag:
+    name: Update Helm Values on Merge
+    needs: [infrastructure-checks]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set Image Tag
+      id: vars
+      # In a real scenario, this would be the SHA of the newly built Docker image
+      run: echo "tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      
+    - name: Update values.yaml
+      uses: fjogeleit/yaml-update-action@main
+      with:
+        valueFile: 'apps/sample-microservice/values.yaml'
+        propertyPath: 'image.tag'
+        value: ${{ steps.vars.outputs.tag }}
+        commitChange: true
+        branch: main
+        message: 'Update image tag to ${{ steps.vars.outputs.tag }} [skip ci]'

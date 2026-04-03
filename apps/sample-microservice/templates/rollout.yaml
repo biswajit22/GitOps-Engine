@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "sample-microservice.fullname" . }}
+  labels:
+    app: {{ include "sample-microservice.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: {{ include "sample-microservice.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "sample-microservice.name" . }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+  strategy:
+    canary:
+      # 20/50/100 Canary Deployment Strategy
+      steps:
+      # Route 20% of traffic to the new version
+      - setWeight: 20
+      # Pause indefinitely for manual approval/verification via ArgoCD UI or CLI
+      - pause: {}
+      # Once approved, ramp up to 50%
+      - setWeight: 50
+      # Pause for a duration before automatically promoting to 100%
+      - pause: {duration: 10m}
